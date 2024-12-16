@@ -8,7 +8,9 @@ if(NOT PythonLibs_FOUND)
 endif()
 
 find_package(pybind11)
+find_package(pybind11 PATHS /usr/local/lib/python3.8/site-packages/pybind11/)
 if(NOT pybind11_FOUND)
+  error("fix for clion")
   return()
 endif()
 
