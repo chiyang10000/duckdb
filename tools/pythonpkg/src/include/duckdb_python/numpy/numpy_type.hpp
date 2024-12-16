@@ -41,8 +41,9 @@ enum class NumpyNullableType : uint8_t {
 	//! ------------------------------------------------------------
 	//! Extension Types
 	//! ------------------------------------------------------------
-	CATEGORY, //! category
-	STRING,   //! string
+	CATEGORY,            //! category
+	STRING,              //! string
+	FIXED_LENGTH_STRING, //! fixed-length string
 };
 
 struct NumpyType {
@@ -50,6 +51,7 @@ struct NumpyType {
 	//! Optionally if the type is a DATETIME,
 	//! this indicates whether the type has timezone information
 	bool has_timezone = false;
+	int fixed_length_string = 0;
 };
 
 enum class NumpyObjectType : uint8_t {
