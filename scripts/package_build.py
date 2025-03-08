@@ -233,7 +233,9 @@ def include_package(pkg_name, pkg_dir, include_files, include_list, source_list)
     original_path = sys.path
     # append the directory
     sys.path.append(pkg_dir)
+    print(sys.path)
     ext_pkg = __import__(pkg_name + '_config')
+    print(ext_pkg)
 
     ext_include_dirs = ext_pkg.include_directories
     ext_source_files = ext_pkg.source_files
@@ -278,6 +280,7 @@ def build_package(target_dir, extensions, linenumbers=False, unity_count=32, fol
     # include the separate extensions
     for ext in extensions:
         ext_path = os.path.join(scripts_dir, '..', 'extension', ext)
+        print(ext, ext_path)
         include_package(ext, ext_path, include_files, include_list, source_list)
 
     for src in source_list:

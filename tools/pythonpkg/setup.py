@@ -256,6 +256,7 @@ if os.name == 'nt':
 else:
     # macos/linux
     toolchain_args = ['-std=c++11', '-g0']
+    toolchain_args = ['-std=c++11', '-g0', '-march=x86-64-v3']
     if 'DUCKDEBUG' in os.environ:
         toolchain_args = ['-std=c++11', '-Wall', '-O0', '-g']
 if 'DUCKDB_INSTALL_USER' in os.environ and 'install' in sys.argv:
