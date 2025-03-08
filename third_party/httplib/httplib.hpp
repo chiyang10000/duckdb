@@ -290,7 +290,8 @@ using socket_t = int;
 //#if OPENSSL_VERSION_NUMBER < 0x1010100fL
 //#error Sorry, OpenSSL versions prior to 1.1.1 are not supported
 #if OPENSSL_VERSION_NUMBER < 0x30000000L
-#define SSL_get1_peer_certificate SSL_get_peer_certificate
+// #define SSL_get1_peer_certificate SSL_get_peer_certificate
+extern "C" X509 *SSL_get1_peer_certificate(const SSL *ssl);
 #endif
 
 #endif
