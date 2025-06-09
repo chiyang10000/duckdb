@@ -178,6 +178,13 @@ Value ArrowOutputListViewSetting::GetSetting(const ClientContext &context) {
 }
 
 //===----------------------------------------------------------------------===//
+// Arrow Output Version
+//===----------------------------------------------------------------------===//
+void ArrowOutputVersionSetting::ResetGlobal(DatabaseInstance *db, DBConfig &config) {
+	config.options.arrow_output_version = DBConfig().options.arrow_output_version;
+}
+
+//===----------------------------------------------------------------------===//
 // Asof Loop Join Threshold
 //===----------------------------------------------------------------------===//
 void AsofLoopJoinThresholdSetting::SetLocal(ClientContext &context, const Value &input) {
@@ -424,6 +431,23 @@ Value DefaultNullOrderSetting::GetSetting(const ClientContext &context) {
 //===----------------------------------------------------------------------===//
 void DefaultOrderSetting::ResetGlobal(DatabaseInstance *db, DBConfig &config) {
 	config.options.default_order_type = DBConfig().options.default_order_type;
+}
+
+//===----------------------------------------------------------------------===//
+// Disable Timestamptz Casts
+//===----------------------------------------------------------------------===//
+void DisableTimestamptzCastsSetting::SetLocal(ClientContext &context, const Value &input) {
+	auto &config = ClientConfig::GetConfig(context);
+	config.disable_timestamptz_casts = input.GetValue<bool>();
+}
+
+void DisableTimestamptzCastsSetting::ResetLocal(ClientContext &context) {
+	ClientConfig::GetConfig(context).disable_timestamptz_casts = ClientConfig().disable_timestamptz_casts;
+}
+
+Value DisableTimestamptzCastsSetting::GetSetting(const ClientContext &context) {
+	auto &config = ClientConfig::GetConfig(context);
+	return Value::BOOLEAN(config.disable_timestamptz_casts);
 }
 
 //===----------------------------------------------------------------------===//
