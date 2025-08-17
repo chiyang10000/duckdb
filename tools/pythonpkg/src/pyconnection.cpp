@@ -2077,7 +2077,7 @@ static void SetDefaultConfigArguments(ClientContext &context) {
 	}
 
 	// Set the function used to create the display for the progress bar
-	// context.config.display_create_func = JupyterProgressBarDisplay::Create; // fixme: zeppelin notebook
+	context.config.display_create_func = JupyterProgressBarDisplay::Create;
 }
 
 void InstantiateNewInstance(DuckDB &db) {
