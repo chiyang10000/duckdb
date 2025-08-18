@@ -12,6 +12,7 @@
 #include "duckdb/parser/parsed_expression_iterator.hpp"
 
 #include <algorithm>
+#include <iostream>
 
 namespace duckdb {
 
@@ -133,6 +134,18 @@ TableBinding::TableBinding(const string &alias, vector<LogicalType> types_p, vec
 			name_map[name] = idx;
 		}
 	}
+	return;
+	bool t = false;
+	std::cerr << "map ";
+	for (auto &entry : name_map) {
+		std::cerr << entry.first << ' ';
+		if (entry.first == "rowid")
+			t = true;
+	}
+	if (!t) {
+		std::cerr << "garbage";
+	}
+	std::cerr << '\n';
 }
 
 static void ReplaceAliases(ParsedExpression &root_expr, const ColumnList &list,
@@ -230,6 +243,7 @@ BindResult TableBinding::Bind(ColumnRefExpression &colref, idx_t depth) {
 	if (!success) {
 		return BindResult(ColumnNotFoundError(column_name));
 	}
+	// std::cerr << column_name << " binding2 \n";
 	auto entry = GetStandardEntry();
 	if (entry && !IsVirtualColumn(column_index)) {
 		D_ASSERT(entry->type == CatalogType::TABLE_ENTRY);
