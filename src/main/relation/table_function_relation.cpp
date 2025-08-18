@@ -64,6 +64,7 @@ void TableFunctionRelation::InitializeColumns() {
 unique_ptr<QueryNode> TableFunctionRelation::GetQueryNode() {
 	auto result = make_uniq<SelectNode>();
 	result->select_list.push_back(make_uniq<StarExpression>());
+	// result->select_list.push_back(make_uniq<ColumnRefExpression>("rowid"));
 	result->from_table = GetTableRef();
 	return std::move(result);
 }

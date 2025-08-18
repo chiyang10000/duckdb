@@ -8,6 +8,7 @@
 #include "duckdb/main/client_context.hpp"
 #include "duckdb_python/pandas/column/pandas_numpy_column.hpp"
 #include "duckdb/parser/tableref/table_function_ref.hpp"
+#include "duckdb/function/table/table_scan.hpp"
 
 #include "duckdb/common/atomic.hpp"
 
@@ -59,6 +60,20 @@ struct PandasScanGlobalState : public GlobalTableFunctionState {
 	}
 };
 
+virtual_column_map_t PandasScanGetVirtualColumns(ClientContext &context, optional_ptr<FunctionData> bind_data) {
+	// fprintf(stderr, "pandas_scan call get virtual columns\n");
+	virtual_column_map_t virtual_columns;
+	virtual_columns.insert(make_pair(COLUMN_IDENTIFIER_ROW_ID, TableColumn("rowid", LogicalType::ROW_TYPE)));
+	return virtual_columns;
+}
+
+vector<column_t> PandasScanGetRowIdColumns(ClientContext &context, optional_ptr<FunctionData> bind_data) {
+	// fprintf(stderr, "pandas_scan call get rowid columns\n");
+	vector<column_t> result;
+	result.push_back(COLUMN_IDENTIFIER_ROW_ID);
+	return result;
+}
+
 PandasScanFunction::PandasScanFunction()
     : TableFunction("pandas_scan", {LogicalType::POINTER}, PandasScanFunc, PandasScanBind, PandasScanInitGlobal,
                     PandasScanInitLocal) {
@@ -67,6 +82,9 @@ PandasScanFunction::PandasScanFunction()
 	table_scan_progress = PandasProgress;
 	serialize = PandasSerialize;
 	projection_pushdown = true;
+	// fprintf(stderr, "pandas_scan init\n");
+	get_virtual_columns = PandasScanGetVirtualColumns;
+	get_row_id_columns = PandasScanGetRowIdColumns;
 }
 
 OperatorPartitionData PandasScanFunction::PandasScanGetPartitionData(ClientContext &context,
