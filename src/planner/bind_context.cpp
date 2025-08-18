@@ -534,6 +534,15 @@ void BindContext::GenerateAllColumnExpressions(StarExpression &expr,
 				HandleRename(expr, qualified_column, *new_expr);
 				new_select_list.push_back(std::move(new_expr));
 			}
+			// TODO: how to make it exclude for df.star
+			if (false && binding.name_map.size() > binding.names.size()) {
+				std::string column_name = "rowid";
+				QualifiedColumnName qualified_column(binding.alias, column_name);
+				auto new_expr =
+					CreateColumnReference(binding.alias, column_name, ColumnBindType::DO_NOT_EXPAND_GENERATED_COLUMNS);
+				HandleRename(expr, qualified_column, *new_expr);
+				new_select_list.push_back(std::move(new_expr));
+			}
 		}
 	} else {
 		// SELECT tbl.* case

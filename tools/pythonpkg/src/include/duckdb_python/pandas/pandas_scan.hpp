@@ -55,6 +55,10 @@ public:
 
 	static void PandasSerialize(Serializer &serializer, const optional_ptr<FunctionData> bind_data,
 	                            const TableFunction &function);
+
+	static virtual_column_map_t PandasScanGetVirtualColumns(ClientContext &context,
+	                                                        optional_ptr<FunctionData> bind_data);
+	static vector<column_t> PandasScanGetRowIdColumns(ClientContext &context, optional_ptr<FunctionData> bind_data);
 };
 
 } // namespace duckdb

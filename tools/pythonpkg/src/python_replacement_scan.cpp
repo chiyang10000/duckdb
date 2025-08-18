@@ -1,5 +1,6 @@
 #include "duckdb_python/python_replacement_scan.hpp"
 
+#include "duckdb/logging/logger.hpp"
 #include "duckdb/main/db_instance_cache.hpp"
 
 #include "duckdb_python/pybind11/pybind_wrapper.hpp"
@@ -116,6 +117,8 @@ unique_ptr<TableRef> PythonReplacementScan::TryReplacementObject(const py::objec
 			CreateArrowScan(name, table, *table_function, children, client_properties, PyArrowObjectType::Table,
 			                DBConfig::GetConfig(context), *context.db);
 		} else {
+			DUCKDB_LOG_WARN(context, "pandas_scan aha");
+			std::cerr << "pandas_scan aha\n";
 			string name = "df_" + StringUtil::GenerateRandomName();
 			auto new_df = PandasScanFunction::PandasReplaceCopiedNames(entry);
 			children.push_back(make_uniq<ConstantExpression>(Value::POINTER(CastPointerToValue(new_df.ptr()))));

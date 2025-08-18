@@ -59,6 +59,22 @@ struct PandasScanGlobalState : public GlobalTableFunctionState {
 	}
 };
 
+virtual_column_map_t PandasScanFunction::PandasScanGetVirtualColumns(ClientContext &context,
+                                                                     optional_ptr<FunctionData> bind_data) {
+	virtual_column_map_t virtual_columns;
+	virtual_columns.insert(make_pair(COLUMN_IDENTIFIER_ROW_ID, TableColumn("rowid", LogicalType::ROW_TYPE)));
+	// std::cerr << virtual_columns.size() << "pandas_scan call get virtual columns\n";
+	return virtual_columns;
+}
+
+vector<column_t> PandasScanFunction::PandasScanGetRowIdColumns(ClientContext &context,
+                                                               optional_ptr<FunctionData> bind_data) {
+	vector<column_t> result;
+	result.push_back(COLUMN_IDENTIFIER_ROW_ID);
+	// std::cerr << "pandas_scan call get row id columns\n";
+	return result;
+}
+
 PandasScanFunction::PandasScanFunction()
     : TableFunction("pandas_scan", {LogicalType::POINTER}, PandasScanFunc, PandasScanBind, PandasScanInitGlobal,
                     PandasScanInitLocal) {
@@ -67,6 +83,9 @@ PandasScanFunction::PandasScanFunction()
 	table_scan_progress = PandasProgress;
 	serialize = PandasSerialize;
 	projection_pushdown = true;
+	// std::cerr << "pandas_scan add virtual\n";
+	get_virtual_columns = PandasScanGetVirtualColumns;
+	get_row_id_columns = PandasScanGetRowIdColumns;
 }
 
 OperatorPartitionData PandasScanFunction::PandasScanGetPartitionData(ClientContext &context,
@@ -216,6 +235,7 @@ py::object PandasScanFunction::PandasReplaceCopiedNames(const py::object &origin
 	py::object copy_df = original_df.attr("copy")(false);
 	auto df_columns = py::list(original_df.attr("columns"));
 	vector<string> columns;
+	// std::cerr << "df_columns: aha\n";
 	for (const auto &str : df_columns) {
 		columns.push_back(string(py::str(str)));
 	}
@@ -227,6 +247,7 @@ py::object PandasScanFunction::PandasReplaceCopiedNames(const py::object &origin
 	}
 	copy_df.attr("columns") = std::move(new_columns);
 	columns.clear();
+	// std::cerr << "df_columns: aha done\n";
 	return copy_df;
 }
 

@@ -28,6 +28,15 @@ unique_ptr<BoundCTENode> Binder::BindCTE(CTENode &statement) {
 	result->setop_index = GenerateTableIndex();
 
 	result->query_binder = Binder::CreateBinder(context, this);
+	if (statement.child) {
+		// XXX: add CTE for rowid ref
+		auto &sel_list = const_cast<vector<unique_ptr<ParsedExpression>> &>(statement.query->GetSelectList());
+		for (auto &clf : statement.child->GetSelectList()) {
+			if (clf->GetName() == "rowid") {
+				sel_list.push_back(clf->Copy());
+			}
+		}
+	}
 	result->query = result->query_binder->BindNode(*statement.query);
 
 	// the result types of the CTE are the types of the LHS
