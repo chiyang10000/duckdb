@@ -496,8 +496,8 @@ void BindContext::GenerateAllColumnExpressions(StarExpression &expr,
 		for (auto &entry : bindings_list) {
 			auto &binding = *entry;
 			for (auto &column_name : binding.names) {
-				if (binding.GetBindingIndex(column_name) == COLUMN_IDENTIFIER_ROW_ID) {
-					// rowid remains addressable (e.g. SELECT rowid FROM t) but is not expanded in SELECT *
+				if (binding.GetBindingIndex(column_name) == COLUMN_IDENTIFIER_ROW_ID && !binding.GetStandardEntry()) {
+					// keep virtual rowid addressable (e.g. SELECT rowid FROM df), but do not expand it in SELECT *
 					continue;
 				}
 				QualifiedColumnName qualified_column(binding.alias, column_name);
@@ -585,8 +585,8 @@ void BindContext::GenerateAllColumnExpressions(StarExpression &expr,
 			}
 		} else {
 			for (auto &column_name : binding->names) {
-				if (binding->GetBindingIndex(column_name) == COLUMN_IDENTIFIER_ROW_ID) {
-					// rowid remains addressable (e.g. SELECT t.rowid FROM t) but is not expanded in t.*
+				if (binding->GetBindingIndex(column_name) == COLUMN_IDENTIFIER_ROW_ID && !binding->GetStandardEntry()) {
+					// keep virtual rowid addressable (e.g. SELECT t.rowid FROM df t), but do not expand it in t.*
 					continue;
 				}
 				QualifiedColumnName qualified_name(binding->alias, column_name);
