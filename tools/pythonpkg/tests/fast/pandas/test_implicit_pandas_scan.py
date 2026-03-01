@@ -42,6 +42,8 @@ class TestImplicitPandasScan(object):
         assert con.execute('select * from df').fetchall() == [(10,), (20,), (30,)]
         assert [desc[0] for desc in con.execute('select * from df').description] == ["a"]
         assert con.execute('select rowid from df').fetchall() == [(0,), (1,), (2,)]
+        assert con.execute('select * from df order by rowid desc').fetchall() == [(30,), (20,), (10,)]
+        assert [desc[0] for desc in con.execute('select * from df order by rowid desc').description] == ["a"]
 
     @pytest.mark.parametrize('pandas', [NumpyPandas(), ArrowPandas()])
     def test_global_pandas_scan(self, duckdb_cursor, pandas):
