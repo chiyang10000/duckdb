@@ -496,6 +496,10 @@ void BindContext::GenerateAllColumnExpressions(StarExpression &expr,
 		for (auto &entry : bindings_list) {
 			auto &binding = *entry;
 			for (auto &column_name : binding.names) {
+				if (binding.GetBindingIndex(column_name) == COLUMN_IDENTIFIER_ROW_ID) {
+					// rowid remains addressable (e.g. SELECT rowid FROM t) but is not expanded in SELECT *
+					continue;
+				}
 				QualifiedColumnName qualified_column(binding.alias, column_name);
 				if (CheckExclusionList(expr, qualified_column, exclusion_info)) {
 					continue;
@@ -581,6 +585,10 @@ void BindContext::GenerateAllColumnExpressions(StarExpression &expr,
 			}
 		} else {
 			for (auto &column_name : binding->names) {
+				if (binding->GetBindingIndex(column_name) == COLUMN_IDENTIFIER_ROW_ID) {
+					// rowid remains addressable (e.g. SELECT t.rowid FROM t) but is not expanded in t.*
+					continue;
+				}
 				QualifiedColumnName qualified_name(binding->alias, column_name);
 				if (CheckExclusionList(expr, qualified_name, exclusion_info)) {
 					continue;

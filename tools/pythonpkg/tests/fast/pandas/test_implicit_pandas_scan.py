@@ -33,6 +33,16 @@ class TestImplicitPandasScan(object):
         assert r1["CoL2"][0] == 1.05
         assert r1["CoL2"][1] == 17
 
+
+    @pytest.mark.parametrize('pandas', [NumpyPandas(), ArrowPandas()])
+    def test_select_star_does_not_include_rowid(self, duckdb_cursor, pandas):
+        con = duckdb.connect()
+        df = pandas.DataFrame([{"a": 10}, {"a": 20}, {"a": 30}])
+
+        assert con.execute('select * from df').fetchall() == [(10,), (20,), (30,)]
+        assert [desc[0] for desc in con.execute('select * from df').description] == ["a"]
+        assert con.execute('select rowid from df').fetchall() == [(0,), (1,), (2,)]
+
     @pytest.mark.parametrize('pandas', [NumpyPandas(), ArrowPandas()])
     def test_global_pandas_scan(self, duckdb_cursor, pandas):
         con = duckdb.connect()
