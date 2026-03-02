@@ -12,7 +12,6 @@
 #include "duckdb/parser/parsed_expression_iterator.hpp"
 
 #include <algorithm>
-#include <iostream>
 
 namespace duckdb {
 
@@ -134,18 +133,6 @@ TableBinding::TableBinding(const string &alias, vector<LogicalType> types_p, vec
 			name_map[name] = idx;
 		}
 	}
-	return;
-	bool t = false;
-	std::cerr << "map ";
-	for (auto &entry : name_map) {
-		std::cerr << entry.first << ' ';
-		if (entry.first == "rowid")
-			t = true;
-	}
-	if (!t) {
-		std::cerr << "garbage";
-	}
-	std::cerr << '\n';
 }
 
 static void ReplaceAliases(ParsedExpression &expr, const ColumnList &list,

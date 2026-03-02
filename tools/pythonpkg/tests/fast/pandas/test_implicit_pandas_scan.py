@@ -41,3 +41,14 @@ class TestImplicitPandasScan(object):
         assert r1["COL1"][1] == "val4"
         assert r1["CoL2"][0] == 1.05
         assert r1["CoL2"][1] == 17
+
+    @pytest.mark.parametrize('pandas', [NumpyPandas(), ArrowPandas()])
+    def test_order_by_rowid_with_star(self, duckdb_cursor, pandas):
+        con = duckdb.connect()
+        df = pandas.DataFrame([{"a": 10}, {"a": 20}, {"a": 30}])
+
+        descending = con.execute('select * from df order by rowid desc').fetchall()
+        assert descending == [(30,), (20,), (10,)]
+
+        with_rowid = con.execute('select rowid, * from df order by rowid').fetchall()
+        assert with_rowid == [(0, 10), (1, 20), (2, 30)]
