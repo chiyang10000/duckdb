@@ -287,7 +287,7 @@ if is_pyodide:
     # show more useful error messages in the browser
     define_macros.append(('PYBIND11_DETAILED_ERROR_MESSAGES', None))
 
-if 'BUILD_HTTPFS' in os.environ:
+if True or 'BUILD_HTTPFS' in os.environ:
     libraries += ['crypto', 'ssl']
     extensions += ['httpfs']
 
