@@ -43,12 +43,31 @@ class TestImplicitPandasScan(object):
         assert r1["CoL2"][1] == 17
 
     @pytest.mark.parametrize('pandas', [NumpyPandas(), ArrowPandas()])
-    def test_order_by_rowid_with_star(self, duckdb_cursor, pandas):
+    def test_rowid_hidden_but_orderable(self, duckdb_cursor, pandas):
         con = duckdb.connect()
-        df = pandas.DataFrame([{"a": 10}, {"a": 20}, {"a": 30}])
+        df = pandas.DataFrame([{"a": 1}, {"a": 3}, {"a": 2}])
+
+        star_columns = list(con.execute('select * from df limit 0').fetchnumpy().keys())
+        assert star_columns == ['a']
 
         descending = con.execute('select * from df order by rowid desc').fetchall()
-        assert descending == [(30,), (20,), (10,)]
+        assert descending == [(2,), (3,), (1,)]
 
         with_rowid = con.execute('select rowid, * from df order by rowid').fetchall()
-        assert with_rowid == [(0, 10), (1, 20), (2, 30)]
+        assert with_rowid == [(0, 1), (1, 3), (2, 2)]
+
+    @pytest.mark.parametrize('pandas', [NumpyPandas(), ArrowPandas()])
+    def test_rowid_order_by_across_cte(self, duckdb_cursor, pandas):
+        con = duckdb.connect()
+        df = pandas.DataFrame([{"a": 11}, {"a": 22}, {"a": 33}])
+
+        result = con.execute(
+            """
+            with t as (
+                select rowid, * from df
+            )
+            select * from t order by rowid desc
+            """
+        ).fetchall()
+        assert result == [(2, 33), (1, 22), (0, 11)]
+
