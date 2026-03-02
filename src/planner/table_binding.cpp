@@ -236,7 +236,6 @@ BindResult TableBinding::Bind(ColumnRefExpression &colref, idx_t depth) {
 	if (!success) {
 		return BindResult(ColumnNotFoundError(column_name));
 	}
-	// std::cerr << column_name << " binding2 \n";
 	auto entry = GetStandardEntry();
 	if (entry && !IsVirtualColumn(column_index)) {
 		D_ASSERT(entry->type == CatalogType::TABLE_ENTRY);

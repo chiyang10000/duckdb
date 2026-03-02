@@ -10,9 +10,7 @@
 # these extensions are loaded by default on every build as they are an essential part of DuckDB
 duckdb_extension_load(core_functions)
 duckdb_extension_load(parquet)
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extension/httpfs")
-    duckdb_extension_load(httpfs)
-endif()
+duckdb_extension_load(httpfs)
 
 # The Linux allocator has issues so we use jemalloc, but only on x86 because page sizes are fixed at 4KB.
 # Configuring jemalloc properly for 32bit is a hassle, and not worth it so we only enable on 64bit
