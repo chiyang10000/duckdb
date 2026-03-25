@@ -17,6 +17,8 @@ unique_ptr<CommonTableExpressionInfo> CommonTableExpressionInfo::Copy() {
 	}
 
 	result->materialized = materialized;
+	result->has_hidden_rowid = has_hidden_rowid;
+	result->hidden_rowid_name = hidden_rowid_name;
 	return result;
 }
 

@@ -93,6 +93,19 @@ public:
 	optional_ptr<StandardEntry> GetStandardEntry() override;
 };
 
+struct HiddenColumnBinding : public Binding {
+public:
+	HiddenColumnBinding(const string &alias, vector<LogicalType> types, vector<string> names, idx_t index,
+	                    case_insensitive_map_t<column_t> hidden_name_map, vector<LogicalType> hidden_types);
+
+	BindResult Bind(ColumnRefExpression &colref, idx_t depth) override;
+	ErrorData ColumnNotFoundError(const string &column_name) const override;
+
+private:
+	case_insensitive_map_t<column_t> hidden_name_map;
+	vector<LogicalType> hidden_types;
+};
+
 //! TableBinding is exactly like the Binding, except it keeps track of which columns were bound in the linked LogicalGet
 //! node for projection pushdown purposes.
 struct TableBinding : public Binding {

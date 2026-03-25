@@ -12,7 +12,6 @@
 #include "duckdb/parser/parsed_expression_iterator.hpp"
 
 #include <algorithm>
-#include <iostream>
 
 namespace duckdb {
 
@@ -113,6 +112,50 @@ optional_ptr<StandardEntry> EntryBinding::GetStandardEntry() {
 	return &entry;
 }
 
+HiddenColumnBinding::HiddenColumnBinding(const string &alias, vector<LogicalType> types_p, vector<string> names_p,
+                                         idx_t index, case_insensitive_map_t<column_t> hidden_name_map_p,
+                                         vector<LogicalType> hidden_types_p)
+    : Binding(BindingType::BASE, BindingAlias(alias), std::move(types_p), std::move(names_p), index),
+      hidden_name_map(std::move(hidden_name_map_p)), hidden_types(std::move(hidden_types_p)) {
+	for (auto &entry : hidden_name_map) {
+		name_map[entry.first] = entry.second;
+	}
+}
+
+BindResult HiddenColumnBinding::Bind(ColumnRefExpression &colref, idx_t depth) {
+	column_t column_index;
+	if (!TryGetBindingIndex(colref.GetColumnName(), column_index)) {
+		return BindResult(ColumnNotFoundError(colref.GetColumnName()));
+	}
+	LogicalType sql_type;
+	if (column_index < names.size()) {
+		sql_type = types[column_index];
+		if (colref.GetAlias().empty()) {
+			colref.SetAlias(names[column_index]);
+		}
+	} else {
+		auto hidden_index = column_index - names.size();
+		D_ASSERT(hidden_index < hidden_types.size());
+		sql_type = hidden_types[hidden_index];
+		if (colref.GetAlias().empty()) {
+			colref.SetAlias(colref.GetColumnName());
+		}
+	}
+	ColumnBinding binding(index, column_index);
+	return BindResult(make_uniq<BoundColumnRefExpression>(colref.GetName(), sql_type, binding, depth));
+}
+
+ErrorData HiddenColumnBinding::ColumnNotFoundError(const string &column_name) const {
+	vector<string> candidate_names(names.begin(), names.end());
+	for (auto &entry : hidden_name_map) {
+		candidate_names.push_back(entry.first);
+	}
+	auto candidate_message = StringUtil::CandidatesErrorMessage(candidate_names, column_name, "Candidate bindings: ");
+	return ErrorData(ExceptionType::BINDER,
+	                 StringUtil::Format("Values list \"%s\" does not have a column named \"%s\"\n%s", GetAlias(),
+	                                    column_name, candidate_message));
+}
+
 TableBinding::TableBinding(const string &alias, vector<LogicalType> types_p, vector<string> names_p,
                            vector<ColumnIndex> &bound_column_ids, optional_ptr<StandardEntry> entry, idx_t index,
                            virtual_column_map_t virtual_columns_p)
@@ -134,18 +177,6 @@ TableBinding::TableBinding(const string &alias, vector<LogicalType> types_p, vec
 			name_map[name] = idx;
 		}
 	}
-	return;
-	bool t = false;
-	std::cerr << "map ";
-	for (auto &entry : name_map) {
-		std::cerr << entry.first << ' ';
-		if (entry.first == "rowid")
-			t = true;
-	}
-	if (!t) {
-		std::cerr << "garbage";
-	}
-	std::cerr << '\n';
 }
 
 static void ReplaceAliases(ParsedExpression &expr, const ColumnList &list,
@@ -249,7 +280,6 @@ BindResult TableBinding::Bind(ColumnRefExpression &colref, idx_t depth) {
 	if (!success) {
 		return BindResult(ColumnNotFoundError(column_name));
 	}
-	// std::cerr << column_name << " binding2 \n";
 	auto entry = GetStandardEntry();
 	if (entry && !IsVirtualColumn(column_index)) {
 		D_ASSERT(entry->type == CatalogType::TABLE_ENTRY);

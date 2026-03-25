@@ -25,7 +25,11 @@ unique_ptr<BoundTableRef> Binder::Bind(SubqueryRef &ref, optional_ptr<CommonTabl
 		subquery_alias = ref.alias;
 	}
 	auto result = make_uniq<BoundSubqueryRef>(std::move(binder), std::move(subquery));
-	bind_context.AddSubquery(bind_index, subquery_alias, ref, *result->subquery);
+	if (cte && cte->has_hidden_rowid) {
+		bind_context.AddSubquery(bind_index, subquery_alias, ref, *result->subquery, cte->hidden_rowid_name);
+	} else {
+		bind_context.AddSubquery(bind_index, subquery_alias, ref, *result->subquery);
+	}
 	MoveCorrelatedExpressions(*result->binder);
 	return std::move(result);
 }

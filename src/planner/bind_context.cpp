@@ -534,23 +534,6 @@ void BindContext::GenerateAllColumnExpressions(StarExpression &expr,
 				HandleRename(expr, qualified_column, *new_expr);
 				new_select_list.push_back(std::move(new_expr));
 			}
-			// TODO: how to make it exclude for df.star
-			if (binding.name_map.size() > binding.names.size()) {
-				// fprintf(stderr,"extend star expr with rowid\n");
-				bool checked_rowid = false;
-				for (auto [k, v] : binding.name_map) {
-					// fprintf(stderr, "extend star expr with rowid %s %d\n", k.c_str(), v);
-					checked_rowid |= (k == "rowid");
-				}
-				if (checked_rowid) {
-					std::string column_name = "rowid";
-					QualifiedColumnName qualified_column(binding.alias, column_name);
-					auto new_expr = CreateColumnReference(binding.alias, column_name,
-					                                      ColumnBindType::DO_NOT_EXPAND_GENERATED_COLUMNS);
-					HandleRename(expr, qualified_column, *new_expr);
-					new_select_list.push_back(std::move(new_expr));
-				}
-			}
 		}
 	} else {
 		// SELECT tbl.* case
@@ -700,6 +683,27 @@ vector<string> BindContext::AliasColumnNames(const string &table_name, const vec
 void BindContext::AddSubquery(idx_t index, const string &alias, SubqueryRef &ref, BoundQueryNode &subquery) {
 	auto names = AliasColumnNames(alias, subquery.names, ref.column_name_alias);
 	AddGenericBinding(index, alias, names, subquery.types);
+}
+
+void BindContext::AddSubquery(idx_t index, const string &alias, SubqueryRef &ref, BoundQueryNode &subquery,
+                              const string &hidden_rowid_name) {
+	if (subquery.names.empty() || subquery.types.empty()) {
+		AddSubquery(index, alias, ref, subquery);
+		return;
+	}
+	D_ASSERT(subquery.names.size() == subquery.types.size());
+	D_ASSERT(subquery.names.back() == hidden_rowid_name);
+	auto visible_names = subquery.names;
+	auto visible_types = subquery.types;
+	visible_names.pop_back();
+	visible_types.pop_back();
+	auto names = AliasColumnNames(alias, visible_names, ref.column_name_alias);
+	case_insensitive_map_t<column_t> hidden_name_map;
+	hidden_name_map["rowid"] = visible_names.size();
+	vector<LogicalType> hidden_types;
+	hidden_types.push_back(subquery.types.back());
+	AddBinding(make_uniq<HiddenColumnBinding>(alias, std::move(visible_types), std::move(names), index,
+	                                          std::move(hidden_name_map), std::move(hidden_types)));
 }
 
 void BindContext::AddEntryBinding(idx_t index, const string &alias, const vector<string> &names,

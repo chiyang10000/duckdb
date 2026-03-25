@@ -1,8 +1,11 @@
 #include "duckdb/main/relation/query_relation.hpp"
 #include "duckdb/main/client_context.hpp"
 #include "duckdb/parser/statement/select_statement.hpp"
+#include "duckdb/parser/expression/function_expression.hpp"
+#include "duckdb/parser/expression/columnref_expression.hpp"
 #include "duckdb/parser/expression/star_expression.hpp"
 #include "duckdb/parser/tableref/subqueryref.hpp"
+#include "duckdb/parser/tableref/table_function_ref.hpp"
 #include "duckdb/parser/tableref/joinref.hpp"
 #include "duckdb/parser/parser.hpp"
 #include "duckdb/planner/bound_statement.hpp"
@@ -12,6 +15,21 @@
 #include "duckdb/parser/common_table_expression_info.hpp"
 
 namespace duckdb {
+
+static constexpr const char *QUERY_RELATION_HIDDEN_ROWID_NAME = "__query_relation_rowid";
+
+static bool ReplacementScanSupportsHiddenRowid(TableRef &tableref) {
+	if (tableref.type != TableReferenceType::TABLE_FUNCTION) {
+		return false;
+	}
+	auto &function_ref = tableref.Cast<TableFunctionRef>();
+	if (!function_ref.function || function_ref.function->GetExpressionType() != ExpressionType::FUNCTION) {
+		return false;
+	}
+	auto &function = function_ref.function->Cast<FunctionExpression>();
+	return function.function_name == "pandas_scan" || function.function_name == "arrow_scan" ||
+	       function.function_name == "arrow_scan_dumb";
+}
 
 QueryRelation::QueryRelation(const shared_ptr<ClientContext> &context, unique_ptr<SelectStatement> select_stmt_p,
                              string alias_p, const string &query_p)
@@ -74,12 +92,22 @@ BoundStatement QueryRelation::Bind(Binder &binder) {
 
 			auto select = make_uniq<SelectStatement>();
 			auto select_node = make_uniq<SelectNode>();
+			auto has_hidden_rowid = ReplacementScanSupportsHiddenRowid(*tableref);
 			select_node->select_list.push_back(make_uniq<StarExpression>());
 			select_node->from_table = std::move(tableref);
+			if (has_hidden_rowid) {
+				auto rowid_ref = make_uniq<ColumnRefExpression>("rowid");
+				rowid_ref->SetAlias(QUERY_RELATION_HIDDEN_ROWID_NAME);
+				select_node->select_list.push_back(std::move(rowid_ref));
+			}
 			select->node = std::move(select_node);
 
 			auto cte_info = make_uniq<CommonTableExpressionInfo>();
 			cte_info->query = std::move(select);
+			cte_info->has_hidden_rowid = has_hidden_rowid;
+			if (cte_info->has_hidden_rowid) {
+				cte_info->hidden_rowid_name = QUERY_RELATION_HIDDEN_ROWID_NAME;
+			}
 
 			cte_map.map[name] = std::move(cte_info);
 		}

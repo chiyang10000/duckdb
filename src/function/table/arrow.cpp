@@ -17,6 +17,12 @@
 
 namespace duckdb {
 
+static virtual_column_map_t ArrowScanGetVirtualColumns(ClientContext &context, optional_ptr<FunctionData> bind_data) {
+	virtual_column_map_t virtual_columns;
+	virtual_columns.insert(make_pair(COLUMN_IDENTIFIER_ROW_ID, TableColumn("rowid", LogicalType::ROW_TYPE)));
+	return virtual_columns;
+}
+
 void ArrowTableFunction::PopulateArrowTableType(DBConfig &config, ArrowTableType &arrow_table,
                                                 const ArrowSchemaWrapper &schema_p, vector<string> &names,
                                                 vector<LogicalType> &return_types) {
@@ -271,6 +277,7 @@ void ArrowTableFunction::RegisterFunction(BuiltinFunctions &set) {
 	arrow.filter_pushdown = true;
 	arrow.filter_prune = true;
 	arrow.supports_pushdown_type = ArrowPushdownType;
+	arrow.get_virtual_columns = ArrowScanGetVirtualColumns;
 	set.AddFunction(arrow);
 
 	TableFunction arrow_dumb("arrow_scan_dumb", {LogicalType::POINTER, LogicalType::POINTER, LogicalType::POINTER},
@@ -280,6 +287,7 @@ void ArrowTableFunction::RegisterFunction(BuiltinFunctions &set) {
 	arrow_dumb.projection_pushdown = false;
 	arrow_dumb.filter_pushdown = false;
 	arrow_dumb.filter_prune = false;
+	arrow_dumb.get_virtual_columns = ArrowScanGetVirtualColumns;
 	set.AddFunction(arrow_dumb);
 }
 
