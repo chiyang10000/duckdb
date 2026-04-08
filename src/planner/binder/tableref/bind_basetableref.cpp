@@ -134,17 +134,37 @@ BoundStatement Binder::Bind(BaseTableRef &ref) {
 		auto index = GenerateTableIndex();
 
 		auto alias = ref.alias.empty() ? ref.table_name : ref.alias;
-		auto names = BindContext::AliasColumnNames(alias, ctebinding->GetColumnNames(), ref.column_name_alias);
+		auto names = ctebinding->GetColumnNames();
+		auto types = ctebinding->GetColumnTypes();
+		if (ctebinding->HasHiddenRowid()) {
+			D_ASSERT(!names.empty());
+			names.pop_back();
+			types.pop_back();
+			auto visible_names = BindContext::AliasColumnNames(alias, names, ref.column_name_alias);
+			bind_context.AddGenericBinding(index, alias, visible_names, types, "rowid", LogicalType::ROW_TYPE);
+			auto output_names = visible_names;
+			output_names.push_back(ctebinding->GetHiddenRowidName());
 
-		bind_context.AddGenericBinding(index, alias, names, ctebinding->GetColumnTypes());
+			bool is_recurring = ref.schema_name == "recurring";
+
+			BoundStatement result;
+			result.types = ctebinding->GetColumnTypes();
+			result.names = std::move(output_names);
+			result.plan =
+			    make_uniq<LogicalCTERef>(index, ctebinding->GetIndex(), result.types, result.names, is_recurring);
+			return result;
+		}
+		names = BindContext::AliasColumnNames(alias, names, ref.column_name_alias);
+
+		bind_context.AddGenericBinding(index, alias, names, types);
 
 		bool is_recurring = ref.schema_name == "recurring";
 
 		BoundStatement result;
-		result.types = ctebinding->GetColumnTypes();
+		result.types = types;
 		result.names = names;
 		result.plan =
-		    make_uniq<LogicalCTERef>(index, ctebinding->GetIndex(), result.types, std::move(names), is_recurring);
+		    make_uniq<LogicalCTERef>(index, ctebinding->GetIndex(), result.types, result.names, is_recurring);
 		return result;
 	}
 

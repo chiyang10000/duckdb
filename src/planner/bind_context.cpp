@@ -705,6 +705,24 @@ void BindContext::AddSubquery(idx_t index, const string &alias, SubqueryRef &ref
 	AddGenericBinding(index, alias, names, subquery.types);
 }
 
+void BindContext::AddSubquery(idx_t index, const string &alias, SubqueryRef &ref, BoundStatement &subquery,
+                              const string &hidden_rowid_name) {
+	D_ASSERT(!subquery.names.empty());
+	D_ASSERT(subquery.types.size() == subquery.names.size());
+	auto visible_names = subquery.names;
+	auto visible_types = subquery.types;
+	visible_names.pop_back();
+	visible_types.pop_back();
+	visible_names = AliasColumnNames(alias, visible_names, ref.column_name_alias);
+
+	case_insensitive_map_t<column_t> hidden_name_map;
+	hidden_name_map[hidden_rowid_name] = visible_names.size();
+	vector<LogicalType> hidden_types;
+	hidden_types.push_back(subquery.types.back());
+	AddBinding(make_uniq<HiddenColumnBinding>(alias, std::move(visible_types), std::move(visible_names), index,
+	                                          std::move(hidden_name_map), std::move(hidden_types)));
+}
+
 void BindContext::AddEntryBinding(idx_t index, const string &alias, const vector<string> &names,
                                   const vector<LogicalType> &types, StandardEntry &entry) {
 	AddBinding(make_uniq<EntryBinding>(alias, types, names, index, entry));
@@ -724,6 +742,17 @@ void BindContext::AddSubquery(idx_t index, const string &alias, TableFunctionRef
 void BindContext::AddGenericBinding(idx_t index, const string &alias, const vector<string> &names,
                                     const vector<LogicalType> &types) {
 	AddBinding(make_uniq<Binding>(BindingType::BASE, BindingAlias(alias), types, names, index));
+}
+
+void BindContext::AddGenericBinding(idx_t index, const string &alias, const vector<string> &names,
+                                    const vector<LogicalType> &types, const string &hidden_rowid_name,
+                                    const LogicalType &hidden_rowid_type) {
+	case_insensitive_map_t<column_t> hidden_name_map;
+	hidden_name_map[hidden_rowid_name] = names.size();
+	vector<LogicalType> hidden_types;
+	hidden_types.push_back(hidden_rowid_type);
+	AddBinding(make_uniq<HiddenColumnBinding>(alias, types, names, index, std::move(hidden_name_map),
+	                                          std::move(hidden_types)));
 }
 
 void BindContext::AddCTEBinding(unique_ptr<CTEBinding> binding) {

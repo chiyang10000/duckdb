@@ -262,6 +262,8 @@ void CommonTableExpressionInfo::Serialize(Serializer &serializer) const {
 	serializer.WritePropertyWithDefault<unique_ptr<SelectStatement>>(101, "query", query);
 	serializer.WriteProperty<CTEMaterialize>(102, "materialized", GetMaterializedForSerialization(serializer));
 	serializer.WritePropertyWithDefault<vector<unique_ptr<ParsedExpression>>>(103, "key_targets", key_targets);
+	serializer.WritePropertyWithDefault<bool>(104, "has_hidden_rowid", has_hidden_rowid);
+	serializer.WritePropertyWithDefault<string>(105, "hidden_rowid_name", hidden_rowid_name);
 }
 
 unique_ptr<CommonTableExpressionInfo> CommonTableExpressionInfo::Deserialize(Deserializer &deserializer) {
@@ -270,6 +272,8 @@ unique_ptr<CommonTableExpressionInfo> CommonTableExpressionInfo::Deserialize(Des
 	deserializer.ReadPropertyWithDefault<unique_ptr<SelectStatement>>(101, "query", result->query);
 	deserializer.ReadProperty<CTEMaterialize>(102, "materialized", result->materialized);
 	deserializer.ReadPropertyWithDefault<vector<unique_ptr<ParsedExpression>>>(103, "key_targets", result->key_targets);
+	deserializer.ReadPropertyWithDefault<bool>(104, "has_hidden_rowid", result->has_hidden_rowid);
+	deserializer.ReadPropertyWithDefault<string>(105, "hidden_rowid_name", result->hidden_rowid_name);
 	return result;
 }
 

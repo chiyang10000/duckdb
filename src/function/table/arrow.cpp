@@ -19,6 +19,18 @@
 
 namespace duckdb {
 
+static virtual_column_map_t ArrowScanGetVirtualColumns(ClientContext &context, optional_ptr<FunctionData> bind_data) {
+	virtual_column_map_t virtual_columns;
+	virtual_columns.insert(make_pair(COLUMN_IDENTIFIER_ROW_ID, TableColumn("rowid", LogicalType::ROW_TYPE)));
+	return virtual_columns;
+}
+
+static vector<column_t> ArrowScanGetRowIdColumns(ClientContext &context, optional_ptr<FunctionData> bind_data) {
+	vector<column_t> result;
+	result.push_back(COLUMN_IDENTIFIER_ROW_ID);
+	return result;
+}
+
 void ArrowTableFunction::PopulateArrowTableSchema(ClientContext &context, ArrowTableSchema &arrow_table,
                                                   const ArrowSchema &arrow_schema) {
 	vector<string> names;
@@ -126,6 +138,8 @@ bool ArrowTableFunction::ArrowScanParallelStateNext(ClientContext &context, cons
 	while (current_chunk->arrow_array.length == 0 && current_chunk->arrow_array.release) {
 		current_chunk = parallel_state.stream->GetNextChunk();
 	}
+	state.row_offset = parallel_state.row_offset;
+	parallel_state.row_offset += NumericCast<idx_t>(current_chunk->arrow_array.length);
 	state.chunk = std::move(current_chunk);
 	//! have we run out of chunks? we are done
 	if (!state.chunk->arrow_array.release) {
@@ -339,6 +353,8 @@ void ArrowTableFunction::RegisterFunction(BuiltinFunctions &set) {
 	arrow.filter_pushdown = true;
 	arrow.filter_prune = true;
 	arrow.supports_pushdown_type = ArrowPushdownType;
+	arrow.get_virtual_columns = ArrowScanGetVirtualColumns;
+	arrow.get_row_id_columns = ArrowScanGetRowIdColumns;
 	set.AddFunction(arrow);
 
 	TableFunction arrow_dumb("arrow_scan_dumb", {LogicalType::POINTER, LogicalType::POINTER, LogicalType::POINTER},
@@ -348,6 +364,8 @@ void ArrowTableFunction::RegisterFunction(BuiltinFunctions &set) {
 	arrow_dumb.projection_pushdown = false;
 	arrow_dumb.filter_pushdown = false;
 	arrow_dumb.filter_prune = false;
+	arrow_dumb.get_virtual_columns = ArrowScanGetVirtualColumns;
+	arrow_dumb.get_row_id_columns = ArrowScanGetRowIdColumns;
 	set.AddFunction(arrow_dumb);
 }
 

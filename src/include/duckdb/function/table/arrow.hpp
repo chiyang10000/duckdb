@@ -134,6 +134,7 @@ public:
 public:
 	shared_ptr<ArrowArrayWrapper> chunk;
 	idx_t chunk_offset = 0;
+	idx_t row_offset = 0;
 	idx_t batch_index = 0;
 	vector<column_t> column_ids;
 	unordered_map<idx_t, unique_ptr<ArrowArrayScanState>> array_states;
@@ -145,6 +146,7 @@ public:
 public:
 	void Reset() {
 		chunk_offset = 0;
+		row_offset = 0;
 		for (auto &col : array_states) {
 			col.second->Reset();
 		}
@@ -166,6 +168,7 @@ struct ArrowScanGlobalState : public GlobalTableFunctionState {
 	mutex main_mutex;
 	idx_t max_threads = 1;
 	idx_t batch_index = 0;
+	idx_t row_offset = 0;
 	bool done = false;
 
 	vector<idx_t> projection_ids;

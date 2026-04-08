@@ -30,7 +30,7 @@ class TableFunctionCatalogEntry;
 class StandardEntry;
 struct ColumnBinding;
 
-enum class BindingType { BASE, TABLE, DUMMY, CATALOG_ENTRY, CTE };
+enum class BindingType { BASE, TABLE, DUMMY, CATALOG_ENTRY, CTE, HIDDEN };
 
 //! A Binding represents a binding to a table, table-producing function or subquery with a specified table index.
 struct Binding {
@@ -105,6 +105,23 @@ public:
 	optional_ptr<StandardEntry> GetStandardEntry() override;
 };
 
+struct HiddenColumnBinding : public Binding {
+public:
+	static constexpr const BindingType TYPE = BindingType::HIDDEN;
+
+public:
+	HiddenColumnBinding(const string &alias, vector<LogicalType> types, vector<string> names, idx_t index,
+	                    case_insensitive_map_t<column_t> hidden_name_map, vector<LogicalType> hidden_types);
+
+public:
+	BindResult Bind(ColumnRefExpression &colref, idx_t depth) override;
+	ErrorData ColumnNotFoundError(const string &column_name) const override;
+
+private:
+	case_insensitive_map_t<column_t> hidden_name_map;
+	vector<LogicalType> hidden_types;
+};
+
 //! TableBinding is exactly like the Binding, except it keeps track of which columns were bound in the linked LogicalGet
 //! node for projection pushdown purposes.
 struct TableBinding : public Binding {
@@ -165,7 +182,8 @@ enum class CTEType { CAN_BE_REFERENCED, CANNOT_BE_REFERENCED };
 struct CTEBinding;
 
 struct CTEBindState {
-	CTEBindState(Binder &parent_binder, QueryNode &cte_def, const vector<string> &aliases);
+	CTEBindState(Binder &parent_binder, QueryNode &cte_def, const vector<string> &aliases, bool has_hidden_rowid,
+	             string hidden_rowid_name);
 	~CTEBindState();
 
 	Binder &parent_binder;
@@ -176,6 +194,8 @@ struct CTEBindState {
 	BoundStatement query;
 	vector<string> names;
 	vector<LogicalType> types;
+	bool has_hidden_rowid;
+	string hidden_rowid_name;
 
 public:
 	bool IsBound() const;
@@ -193,12 +213,16 @@ public:
 public:
 	bool CanBeReferenced() const;
 	bool IsReferenced() const;
+	bool HasHiddenRowid() const;
+	const string &GetHiddenRowidName() const;
 	void Reference();
 
 private:
 	CTEType cte_type;
 	idx_t reference_count;
 	shared_ptr<CTEBindState> bind_state;
+	bool has_hidden_rowid = false;
+	string hidden_rowid_name;
 };
 
 } // namespace duckdb
