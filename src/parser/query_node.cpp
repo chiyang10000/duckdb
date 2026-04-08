@@ -26,6 +26,8 @@ CommonTableExpressionMap CommonTableExpressionMap::Copy() const {
 		}
 		kv_info->query = unique_ptr_cast<SQLStatement, SelectStatement>(kv.second->query->Copy());
 		kv_info->materialized = kv.second->materialized;
+		kv_info->has_hidden_rowid = kv.second->has_hidden_rowid;
+		kv_info->hidden_rowid_name = kv.second->hidden_rowid_name;
 		res.map[kv.first] = std::move(kv_info);
 	}
 
@@ -163,6 +165,12 @@ bool QueryNode::Equals(const QueryNode *other) const {
 		if (!entry.second->query->Equals(*other->cte_map.map.at(entry.first)->query)) {
 			return false;
 		}
+		if (entry.second->has_hidden_rowid != other_entry->second->has_hidden_rowid) {
+			return false;
+		}
+		if (entry.second->hidden_rowid_name != other_entry->second->hidden_rowid_name) {
+			return false;
+		}
 	}
 	return other->type == type;
 }
@@ -181,6 +189,8 @@ void QueryNode::CopyProperties(QueryNode &other) const {
 		}
 		kv_info->query = unique_ptr_cast<SQLStatement, SelectStatement>(kv.second->query->Copy());
 		kv_info->materialized = kv.second->materialized;
+		kv_info->has_hidden_rowid = kv.second->has_hidden_rowid;
+		kv_info->hidden_rowid_name = kv.second->hidden_rowid_name;
 		other.cte_map.map[kv.first] = std::move(kv_info);
 	}
 }

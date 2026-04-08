@@ -1457,7 +1457,13 @@ void ArrowToDuckDBConversion::ColumnArrowToDuckDBDictionary(Vector &vector, Arro
 
 void ArrowTableFunction::ArrowToDuckDB(ArrowScanLocalState &scan_state, const arrow_column_map_t &arrow_convert_data,
                                        DataChunk &output, bool arrow_scan_is_projected, idx_t rowid_column_index) {
+	idx_t projected_column_idx = 0;
 	for (idx_t idx = 0; idx < output.ColumnCount(); idx++) {
+		if (!scan_state.column_ids.empty() && idx >= scan_state.column_ids.size()) {
+			throw InternalException("arrow_scan: output column index %llu exceeds scan column count %llu",
+			                        NumericCast<unsigned long long>(idx),
+			                        NumericCast<unsigned long long>(scan_state.column_ids.size()));
+		}
 		auto col_idx = scan_state.column_ids.empty() ? idx : scan_state.column_ids[idx];
 
 		// If projection was not pushed down into the arrow scanner, but projection pushdown is enabled on the
@@ -1475,14 +1481,22 @@ void ArrowTableFunction::ArrowToDuckDB(ArrowScanLocalState &scan_state, const ar
 				arrow_array_idx += 1;
 			}
 		} else {
-			// If there isn't any defined row_id_index, and we're asked for it, skip the column.
-			// This is the incumbent behavior.
 			if (col_idx == COLUMN_IDENTIFIER_ROW_ID) {
+				output.data[idx].Sequence(scan_state.row_offset + scan_state.chunk_offset, 1, output.size());
 				continue;
+			}
+			if (arrow_scan_is_projected && !scan_state.column_ids.empty()) {
+				arrow_array_idx = projected_column_idx++;
 			}
 		}
 
 		auto &parent_array = scan_state.chunk->arrow_array;
+		if (arrow_array_idx >= NumericCast<idx_t>(parent_array.n_children)) {
+			throw InternalException("arrow_scan: array child index %llu exceeds child count %llu for column %llu",
+			                        NumericCast<unsigned long long>(arrow_array_idx),
+			                        NumericCast<unsigned long long>(parent_array.n_children),
+			                        NumericCast<unsigned long long>(col_idx));
+		}
 		auto &array = *scan_state.chunk->arrow_array.children[arrow_array_idx];
 		if (!array.release) {
 			throw InvalidInputException("arrow_scan: released array passed");

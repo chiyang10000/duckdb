@@ -47,9 +47,11 @@ BoundStatement Binder::BindNode(QueryNode &node) {
 	return result;
 }
 
-CTEBindState::CTEBindState(Binder &parent_binder_p, QueryNode &cte_def_p, const vector<string> &aliases_p)
+CTEBindState::CTEBindState(Binder &parent_binder_p, QueryNode &cte_def_p, const vector<string> &aliases_p,
+                           bool has_hidden_rowid_p, string hidden_rowid_name_p)
     : parent_binder(parent_binder_p), cte_def(cte_def_p), aliases(aliases_p),
-      active_binder_count(parent_binder.GetActiveBinders().size()) {
+      active_binder_count(parent_binder.GetActiveBinders().size()), has_hidden_rowid(has_hidden_rowid_p),
+      hidden_rowid_name(std::move(hidden_rowid_name_p)) {
 }
 
 CTEBindState::~CTEBindState() {
@@ -113,7 +115,8 @@ BoundCTEData Binder::PrepareCTE(const string &ctename, CommonTableExpressionInfo
 
 	// instead of eagerly binding the CTE here we add the CTE bind state to the list of CTE bindings
 	// the CTE is bound lazily - when referenced for the first time we perform the binding
-	result.cte_bind_state = make_shared_ptr<CTEBindState>(*this, *statement.query->node, statement.aliases);
+	result.cte_bind_state = make_shared_ptr<CTEBindState>(*this, *statement.query->node, statement.aliases,
+	                                                      statement.has_hidden_rowid, statement.hidden_rowid_name);
 
 	result.child_binder = Binder::CreateBinder(context, this);
 

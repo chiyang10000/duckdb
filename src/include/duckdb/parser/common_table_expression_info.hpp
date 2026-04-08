@@ -22,6 +22,8 @@ struct CommonTableExpressionInfo {
 	vector<unique_ptr<ParsedExpression>> key_targets;
 	unique_ptr<SelectStatement> query;
 	CTEMaterialize materialized = CTEMaterialize::CTE_MATERIALIZE_DEFAULT;
+	bool has_hidden_rowid = false;
+	string hidden_rowid_name;
 
 public:
 	void Serialize(Serializer &serializer) const;
